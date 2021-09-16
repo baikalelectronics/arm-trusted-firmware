@@ -1,0 +1,324 @@
+/*
+ * Copyright (c) 2018-2021, Baikal Electronics, JSC. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+#ifndef PLATFORM_DEF_H
+#define PLATFORM_DEF_H
+
+#include <arch.h>
+#include <plat/common/common_def.h>
+
+/* Special value used to verify platform parameters from BL2 to BL3-1 */
+#define BAIKAL_BL31_PLAT_PARAM_VAL	ULL(0x0f1e2d3c4b5a6978)
+
+#define PLATFORM_STACK_SIZE		U(0x2000)
+
+#define PLATFORM_MAX_CPUS_PER_CLUSTER	U(2)
+#define PLATFORM_CLUSTER_COUNT		U(4)
+#define PLATFORM_CORE_COUNT_PER_CLUSTER	PLATFORM_MAX_CPUS_PER_CLUSTER
+#define PLATFORM_CORE_COUNT		(PLATFORM_CLUSTER_COUNT * \
+					 PLATFORM_CORE_COUNT_PER_CLUSTER)
+
+#define BAIKAL_PRIMARY_CPU		U(0)
+
+#define PLAT_NUM_PWR_DOMAINS		(PLATFORM_CLUSTER_COUNT + \
+					 PLATFORM_CORE_COUNT)
+
+#define PLAT_MAX_PWR_LVL		MPIDR_AFFLVL1
+#define PLAT_MAX_RET_STATE		U(1)
+#define PLAT_MAX_OFF_STATE		U(2)
+
+/* Local power state for power domains in Run state */
+#define PLAT_LOCAL_STATE_RUN		U(0)
+/* Local power state for retention. Valid only for CPU power domains */
+#define PLAT_LOCAL_STATE_RET		U(1)
+/* Local power state for power-down. Valid for CPU and cluster power domains */
+#define PLAT_LOCAL_STATE_OFF		U(2)
+
+/*
+ * Macros used to parse state information from State-ID if it is using the
+ * recommended encoding for State-ID.
+ */
+#define PLAT_LOCAL_PSTATE_WIDTH		U(4)
+#define PLAT_LOCAL_PSTATE_MASK		((U(1) << PLAT_LOCAL_PSTATE_WIDTH) - 1)
+
+/* Physical and virtual address space limits */
+#define PLAT_PHY_ADDR_SPACE_SIZE	(ULL(1) << 40)
+#define PLAT_VIRT_ADDR_SPACE_SIZE	(ULL(1) << 40)
+
+#define CACHE_WRITEBACK_SHIFT		U(6)
+#define CACHE_WRITEBACK_GRANULE		(U(1) << CACHE_WRITEBACK_SHIFT)
+
+#define MAX_MMAP_REGIONS		16
+#define MAX_XLAT_TABLES			8
+#define MAX_IO_DEVICES			3
+#define MAX_IO_HANDLES			6
+
+/* Static IO memory map */
+#define MAILBOX_SIGNALING_BASE		UL(0x200000)
+#define MAILBOX_SIGNALING_SIZE		UL(0x200000)
+
+/* DRAM regions */
+#define REGION_DRAM0_BASE		ULL(0x80000000)
+#define REGION_DRAM0_SIZE		ULL(0x80000000)
+#define REGION_DRAM1_BASE		ULL(0x880000000)
+#define REGION_DRAM1_SIZE		ULL(0x780000000)
+#define REGION_DRAM2_BASE		ULL(0x8800000000)
+#define REGION_DRAM2_SIZE		ULL(0x7800000000)
+
+/*
+ * Partition memory into secure ROM, non-secure DRAM, secure "SRAM",
+ * and secure DRAM.
+ */
+#define MAILBOX_BASE			0x00000000
+#define MAILBOX_SIZE			0x00010000
+
+#define NS_DRAM0_BASE			0x80000000
+#define NS_DRAM0_SIZE			0x10000000
+
+#define SEC_DRAM0_BASE			0x90000000
+#define SEC_DRAM0_SIZE			0x10000000
+
+#define FB_SIZE			(64 * 1024 * 1024) /* 64M is sufficient for any available resolution */
+#define NS_DRAM1_BASE			0xa0000000
+#define NS_DRAM1_SIZE			(0x20000000 - 3 * FB_SIZE) /* Reserve space for two framebuffers */
+#define NS_DRAM1_LIMIT			(NS_DRAM1_BASE + NS_DRAM1_SIZE)
+#define FB0_BASE			NS_DRAM1_LIMIT
+#define FB1_BASE			(FB0_BASE + FB_SIZE)
+#define FB2_BASE			(FB1_BASE + FB_SIZE)
+
+/* Load pageable part of OP-TEE at end of secure DRAM */
+#define BAIKAL_OPTEE_PAGEABLE_LOAD_BASE	(SEC_DRAM0_BASE + SEC_DRAM0_SIZE - \
+					 BAIKAL_OPTEE_PAGEABLE_LOAD_SIZE)
+#define BAIKAL_OPTEE_PAGEABLE_LOAD_SIZE	0x00400000
+
+/* BL1 lives in SRAM, partition it here */
+#define SHARED_SRAM_BASE		0
+#define SHARED_SRAM_SIZE		0x10000
+
+#define PLAT_BAIKAL_TRUSTED_MAILBOX_BASE	BL1_RW_BASE
+#define PLAT_BAIKAL_TRUSTED_MAILBOX_SIZE	(8 + PLAT_BAIKAL_HOLD_SIZE)
+#define PLAT_BAIKAL_HOLD_BASE		(PLAT_BAIKAL_TRUSTED_MAILBOX_BASE + 8)
+#define PLAT_BAIKAL_HOLD_SIZE		(PLATFORM_CORE_COUNT * PLAT_BAIKAL_HOLD_ENTRY_SIZE)
+#define PLAT_BAIKAL_HOLD_ENTRY_SIZE	8
+#define PLAT_BAIKAL_HOLD_STATE_WAIT	0
+#define PLAT_BAIKAL_HOLD_STATE_GO	1
+
+/* FDT related constants */
+#define PLAT_BAIKAL_DT_BASE		NS_DRAM0_BASE
+#define PLAT_BAIKAL_DT_MAX_SIZE		0x10000
+#define PLAT_BAIKAL_DT_LIMIT		(PLAT_BAIKAL_DT_BASE + PLAT_BAIKAL_DT_MAX_SIZE)
+#define PLAT_BAIKAL_NS_IMAGE_OFFSET	NS_DRAM1_BASE
+
+/*
+ * BL1 specific defines.
+ *
+ * BL1 RW data is relocated from ROM to RAM at runtime so we need 2 sets of
+ * addresses.
+ * Put BL1 RW at the top of the Secure SRAM. BL1_RW_BASE is calculated using
+ * the current BL1 RW debug size plus a little space for growth.
+ */
+#define BL1_XLAT_BASE			SEC_DRAM0_BASE
+#define BL1_XLAT_SIZE			0x10000
+
+#define PLAT_SEC_FIP_BASE		(SEC_DRAM0_BASE + BL1_XLAT_SIZE) /* Assuming lower 16K will be taken by XLAT tables */
+#define PLAT_SEC_FIP_MAX_SIZE		0x600000
+#define PLAT_SEC_FIP_LIMIT		(PLAT_SEC_FIP_BASE + PLAT_SEC_FIP_MAX_SIZE)
+
+#define BL1_RO_BASE			MAILBOX_BASE
+#define BL1_RO_SIZE			0xc000
+#define BL1_RO_LIMIT			(MAILBOX_BASE + BL1_RO_SIZE)
+#define BL1_RW_BASE			(MAILBOX_BASE + BL1_RO_SIZE)
+#define SCP_SERVICE_BASE		0xeff0
+#define BL1_RW_LIMIT			0xf000
+
+/* boot flash */
+#define FLASH_MAP_FDT			0x40000
+#define FLASH_MAP_VARS			0x50000
+#define FLASH_MAP_SCP			0x80000
+#define FLASH_MAP_FIP			0x110000
+
+#define SPI_BASE			0x20210000
+#define SPI_OFFSET			0x00001000
+#define GPIO32_BASE			0x20200000
+
+/*
+ * BL2 specific defines.
+ *
+ * Put BL2 just below BL3-1. BL2_BASE is calculated using the current BL2 debug
+ * size plus a little space for growth.
+ */
+#define BL2_BASE			PLAT_SEC_FIP_LIMIT
+#define BL2_SIZE			0x22000
+#define BL2_LIMIT			(BL2_BASE + BL2_SIZE)
+
+#define BL_RAM_BASE			BL2_BASE
+#define BL_RAM_SIZE			(BL2_LIMIT - BL2_BASE)
+
+/*
+ * BL3-1 specific defines.
+ *
+ * Put BL3-1 at the top of the Trusted SRAM. BL31_BASE is calculated using the
+ * current BL3-1 debug size plus a little space for growth.
+ */
+#define BL31_BASE			BL2_LIMIT
+#define BL31_SIZE			0x100000
+#define BL31_LIMIT			(BL31_BASE + BL31_SIZE)
+#define BL31_PROGBITS_LIMIT		(BL31_LIMIT + 0x12000)
+
+/*
+ * BL3-2 specific defines.
+ *
+ * BL3-2 can execute from Secure SRAM, or Secure DRAM.
+ */
+#define BL32_SRAM_BASE			BL_RAM_BASE
+#define BL32_SRAM_LIMIT			BL31_BASE
+#define BL32_DRAM_BASE			BL31_PROGBITS_LIMIT
+#define BL32_DRAM_LIMIT			(SEC_DRAM0_SIZE + SEC_DRAM0_BASE)
+
+#define BL32_MEM_BASE			SEC_DRAM0_BASE
+#define BL32_MEM_SIZE			SEC_DRAM0_SIZE
+#define BL32_BASE			BL32_DRAM_BASE
+#define BL32_LIMIT			BL32_DRAM_LIMIT
+
+#define UART0_BASE			0x20230000
+#define UART1_BASE			0x20240000
+#define UART0_CLK_IN_HZ			7372800
+#define UART1_CLK_IN_HZ			7372800
+
+#define PLAT_BAIKAL_BOOT_UART_BASE	UART0_BASE
+#define PLAT_BAIKAL_BOOT_UART_CLK_IN_HZ	UART0_CLK_IN_HZ
+
+#define PLAT_BAIKAL_CRASH_UART_BASE	UART0_BASE
+#define PLAT_BAIKAL_CRASH_UART_CLK_IN_HZ	UART0_CLK_IN_HZ
+
+#define PLAT_BAIKAL_CONSOLE_BAUDRATE	115200
+
+#define DEVICE0_BASE			0x02000000
+#define DEVICE0_SIZE			0x12000000
+
+#define DEVICE1_BASE			0x20000000
+#define DEVICE1_SIZE			0x20100000
+
+#define MAILBOX_SIGNALING_ADDR(rg)	(MAILBOX_SIGNALING_BASE + rg * 0x10000)
+#define AP2SCP_ADDR(rg)			(MAILBOX_SIGNALING_ADDR(rg))
+#define AP2SCP_STATUS_R(rg)		(AP2SCP_ADDR(rg))
+#define AP2SCP_SET_R(rg)		(AP2SCP_ADDR(rg) + 4)
+#define AP2SCP_CLEAR_R(rg)		(AP2SCP_ADDR(rg) + 8)
+#define SCP2AP_ADDR(rg)			(MAILBOX_SIGNALING_ADDR(rg) + 0x8000)
+#define SCP2AP_STATUS_R(rg)		(SCP2AP_ADDR(rg))
+#define SCP2AP_SET_R(rg)		(SCP2AP_ADDR(rg) + 4)
+#define SCP2AP_CLEAR_R(rg)		(SCP2AP_ADDR(rg) + 8)
+
+#define MMAVLSP_LCRU			0x20000000
+#define MMCA57_0_LCRU			0x28000000
+#define MMCA57_1_LCRU			0x0c000000
+#define MMCA57_2_LCRU			0x0a000000
+#define MMCA57_3_LCRU			0x26000000
+#define MMDDR0_LCRU			0x0e000000
+#define MMDDR1_LCRU			0x22000000
+#define MMMALI_LCRU			0x2a000000
+#define MMPCIE_LCRU			0x02000000
+#define MMUSB_LCRU			0x2c000000
+#define MMVDEC_GPR(offset)		(MMVDEC_LCRU + LCRU_GPR + offset)
+#define MMVDEC_LCRU			0x24000000
+
+/* GIC related constants */
+#define GICD_BASE			0x2d000000
+#define GICC_BASE			0x2d000000
+#define GICR_BASE			0x2d100000
+
+#define BAIKAL_IRQ_SEC_SGI_0		8
+#define BAIKAL_IRQ_SEC_SGI_1		9
+#define BAIKAL_IRQ_SEC_SGI_2		10
+#define BAIKAL_IRQ_SEC_SGI_3		11
+#define BAIKAL_IRQ_SEC_SGI_4		12
+#define BAIKAL_IRQ_SEC_SGI_5		13
+#define BAIKAL_IRQ_SEC_SGI_6		14
+#define BAIKAL_IRQ_SEC_SGI_7		15
+
+/* System counter */
+#ifdef BE_QEMU
+#define SYS_COUNTER_FREQ_IN_TICKS	ULL((1000 * 1000 * 1000) / 16)
+#else
+#define SYS_COUNTER_FREQ_IN_TICKS	ULL(50000000)
+#endif
+
+/* CCN related constants */
+#define PLAT_ARM_CCN_BASE		0x9000000
+#define PLAT_ARM_CLUSTER_TO_CCN_ID_MAP	1, 9, 11, 19
+#define PLAT_ARM_CLUSTER_COUNT		PLATFORM_CLUSTER_COUNT
+#define CCN_HNF_OFFSET			0x200000
+
+/* Baikal-M Network Interconnect Config (NIC) addresses */
+#define BAIKAL_AVLSP_GPV		0x20100000
+#define BAIKAL_VDEC_GPV			0x24100000
+#define BAIKAL_MALI_GPV			0x2a100000
+#define BAIKAL_PCIE_CFG_GPV		0x02100000
+#define BAIKAL_PCIE_GPV			0x40000000
+#define BAIKAL_USB_GPV			0x2c100000
+#define BAIKAL_XGB_GPV			0x30100000
+/* NIC AVLSP CFG */
+#define BAIKAL_NIC_AVLSP_TCU		(BAIKAL_AVLSP_GPV + 0x18)
+#define BAIKAL_NIC_AVLSP_HDA		(BAIKAL_AVLSP_GPV + 0x38)
+#define BAIKAL_NIC_AVLSP_VDU		(BAIKAL_AVLSP_GPV + 0x44)
+#define BAIKAL_NIC_AVLSP_SDC		(BAIKAL_AVLSP_GPV + 0x3c)
+#define BAIKAL_NIC_AVLSP_TIMERS		(BAIKAL_AVLSP_GPV + 0x40)
+#define BAIKAL_NIC_AVLSP_GPIO		(BAIKAL_AVLSP_GPV + 0x08)
+#define BAIKAL_NIC_AVLSP_UART_1		(BAIKAL_AVLSP_GPV + 0x2c)
+#define BAIKAL_NIC_AVLSP_UART_2		(BAIKAL_AVLSP_GPV + 0x28)
+#define BAIKAL_NIC_AVLSP_SPI		(BAIKAL_AVLSP_GPV + 0x20)
+#define BAIKAL_NIC_AVLSP_ESPI		(BAIKAL_AVLSP_GPV + 0x34)
+#define BAIKAL_NIC_AVLSP_I2S		(BAIKAL_AVLSP_GPV + 0x14)
+#define BAIKAL_NIC_AVLSP_I2C_1		(BAIKAL_AVLSP_GPV + 0x24)
+#define BAIKAL_NIC_AVLSP_I2C_2		(BAIKAL_AVLSP_GPV + 0x30)
+#define BAIKAL_NIC_AVLSP_SMBUS_1	(BAIKAL_AVLSP_GPV + 0x0c)
+#define BAIKAL_NIC_AVLSP_SMBUS_2	(BAIKAL_AVLSP_GPV + 0x10)
+/* NIC VDEC CFG */
+#define BAIKAL_NIC_VDEC_TCU		(BAIKAL_VDEC_GPV + 0x24)
+#define BAIKAL_NIC_VDEC_CTL		(BAIKAL_VDEC_GPV + 0x08)
+/* NIC MALI CFG */
+#define BAIKAL_NIC_MALI_TCU		(BAIKAL_MALI_GPV + 0x0c)
+#define BAIKAL_NIC_MALI			(BAIKAL_MALI_GPV + 0x08)
+/* NIC PCIE CFG */
+#define BAIKAL_NIC_PCIE_CFG_TCU		(BAIKAL_PCIE_CFG_GPV + 0x18)
+#define BAIKAL_NIC_PCIE_CFG_X4_0	(BAIKAL_PCIE_CFG_GPV + 0x0c)
+#define BAIKAL_NIC_PCIE_CFG_X4_1	(BAIKAL_PCIE_CFG_GPV + 0x10)
+#define BAIKAL_NIC_PCIE_CFG_X8		(BAIKAL_PCIE_CFG_GPV + 0x14)
+/* NIC PCIE */
+#define BAIKAL_NIC_PCIE_X4_0		(BAIKAL_PCIE_GPV + 0x08)
+#define BAIKAL_NIC_PCIE_X4_1		(BAIKAL_PCIE_GPV + 0x0c)
+#define BAIKAL_NIC_PCIE_X8		(BAIKAL_PCIE_GPV + 0x10)
+/* NIC USB CFG */
+#define BAIKAL_NIC_USB_TCU		(BAIKAL_USB_GPV + 0x18)
+#define BAIKAL_NIC_USB_0		(BAIKAL_USB_GPV + 0x08)
+#define BAIKAL_NIC_USB_1		(BAIKAL_USB_GPV + 0x0c)
+#define BAIKAL_NIC_SATA_0		(BAIKAL_USB_GPV + 0x10)
+#define BAIKAL_NIC_SATA_1		(BAIKAL_USB_GPV + 0x14)
+#define BAIKAL_NIC_USB_GIC		(BAIKAL_USB_GPV + 0x1c)
+#define BAIKAL_NIC_USB_DMA330_0		(BAIKAL_USB_GPV + 0x20)
+#define BAIKAL_NIC_USB_DMA330_1		(BAIKAL_USB_GPV + 0x24)
+/* NIC XGB CFG */
+#define BAIKAL_NIC_XGB_TCU		(BAIKAL_XGB_GPV + 0x24)
+#define BAIKAL_NIC_XGB_VDU		(BAIKAL_XGB_GPV + 0x08)
+#define BAIKAL_NIC_XGB_HDMI		(BAIKAL_XGB_GPV + 0x28)
+#define BAIKAL_NIC_XGB0_CNT		(BAIKAL_XGB_GPV + 0x0c)
+#define BAIKAL_NIC_XGB0_PHY		(BAIKAL_XGB_GPV + 0x10)
+#define BAIKAL_NIC_XGB1_CNT		(BAIKAL_XGB_GPV + 0x14)
+#define BAIKAL_NIC_XGB1_PHY		(BAIKAL_XGB_GPV + 0x18)
+#define BAIKAL_NIC_1GB_0		(BAIKAL_XGB_GPV + 0x1c)
+#define BAIKAL_NIC_1GB_1		(BAIKAL_XGB_GPV + 0x20)
+
+/* PVT CLock channels offsets */
+#define MALI_PVTCC_ADDR		0x2a060000
+#define A57_0_PVTCC_ADDR	0x28200000
+#define A57_1_PVTCC_ADDR	0x0c200000
+#define A57_2_PVTCC_ADDR	0x0a200000
+#define A57_3_PVTCC_ADDR	0x26200000
+#define PVT_AREA_MASK		0xffff
+#define PVT_CCH_OFFSET		0x40
+#define PVT_DIV			21 /* Input 25 MHz, but recommended freq is 1.19 MHz => 21 is div */
+
+#endif /* PLATFORM_DEF_H */
